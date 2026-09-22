@@ -1,495 +1,159 @@
-# Multimodal GenAI Decision Support
-## A Research Prototype for Evidence-Grounded AI Decision Support in Digital Transformation and AI Governance
+Multimodal GenAI Decision Support
+
+Evidence-Grounded Decision Support for Digital Transformation and AI Governance
 
 <p align="center">
-
-**PDF Ingestion · Semantic Retrieval · RAG · Source Traceability · AI Governance**
-
+<strong>PDF ingestion · Semantic retrieval · Retrieval-Augmented Generation · Provenance · Evaluation</strong>
 </p>
 
----
+Abstract
 
-## Abstract
+This repository contains a research prototype for evidence-grounded generative AI decision support applied to digital transformation and AI governance. The prototype investigates how knowledge contained in unstructured PDF documents can be transformed into retrievable semantic representations and used to generate answers that remain traceable to their documentary evidence.
 
-This repository presents a research-oriented prototype for **Generative AI-based decision support** applied to digital transformation and AI governance.
+The current implementation is deliberately PDF-only. It establishes a controlled baseline for a broader multimodal research direction; native table understanding, visual embeddings, OCR, and image-level reasoning are not yet implemented.
 
-The system investigates how organizational knowledge contained in unstructured PDF documents can be transformed into a searchable semantic representation and subsequently used to generate **evidence-grounded answers**.
+The experimental system separates four functions: document processing, semantic retrieval, evidence-grounded generation, and evaluation. This separation is central to the research design because retrieval errors and generation errors must be observable independently.
 
-The architecture follows a modular Retrieval-Augmented Generation (RAG) pipeline:
+1. Research Problem
 
-```text
-PDF Documents
-     │
-     ▼
-Document Ingestion
-     │
-     ▼
-Text Extraction
-     │
-     ▼
-PDF Cleaning & Encoding Correction
-     │
-     ▼
-Semantic Chunking
-     │
-     ▼
-Metadata Construction
-     │
-     ▼
-Sentence Embeddings
-     │
-     ▼
-Qdrant Vector Database
-     │
-     ▼
-Semantic Retrieval
-     │
-     ▼
-Retrieved Evidence
-     │
-     ▼
-Gemini Generation
-     │
-     ▼
-Grounded Answer
-     │
-     ▼
-Evaluation
-```
+Organizations accumulate strategic, regulatory, technical, and managerial documents, but access to this knowledge remains difficult when information is distributed across long unstructured files. A generative model can produce fluent responses without demonstrating that its claims are supported by the organization's documents.
 
-The current implementation focuses exclusively on **PDF documents**. The project is therefore a research prototype for a broader multimodal decision-support direction rather than a complete multimodal production system.
+This project studies the following research question:
 
----
+How can Retrieval-Augmented Generation transform organizational PDF collections into traceable and evidence-grounded decision support for digital transformation and AI governance?
 
-# 1. Research Motivation
+The prototype operationalizes this question through three requirements:
 
-Organizations increasingly accumulate large volumes of strategic, regulatory, technical and managerial documentation.
+retrievability — relevant evidence must be identifiable from the document collection;
 
-The difficulty is not only storing this information, but also:
+grounding — generated claims must be constrained by retrieved evidence;
 
-- locating relevant evidence;
-- preserving document context;
-- identifying the provenance of information;
-- transforming retrieved evidence into useful answers;
-- controlling unsupported or hallucinated model outputs;
-- evaluating the quality of both retrieval and generation.
+provenance — evidence must remain traceable to its source document and page.
 
-A conventional generative AI system can produce fluent answers without guaranteeing that those answers are grounded in an organization's source material.
+2. Scope
 
-This project therefore investigates the following principle:
+Implemented baseline
 
-> **Generative AI should operate on explicitly retrieved evidence rather than relying exclusively on the model's internal knowledge.**
+The current system implements:
 
-The resulting architecture separates the problem into four major stages:
+PDF text extraction at page level;
 
-1. **Knowledge ingestion**
-2. **Semantic retrieval**
-3. **Evidence-grounded generation**
-4. **System evaluation**
+conservative text cleaning and encoding correction;
 
-This separation also makes it possible to experimentally study where errors originate.
+sentence-aware chunking with page preservation;
 
----
+chunk-level provenance metadata;
 
-# 2. Research Question
+dense semantic embeddings with all-MiniLM-L6-v2;
 
-The prototype is designed around a general research question:
+vector storage and cosine-similarity retrieval with Qdrant;
 
-> **How can Retrieval-Augmented Generation be used to transform organizational document collections into traceable and evidence-grounded decision support for digital transformation and AI governance?**
+top-k evidence retrieval;
 
-The system is not intended merely to demonstrate a chatbot interface.
+document-grounded answer generation with Gemini;
 
-Its purpose is to provide an experimental framework in which the following can be studied independently:
+retrieval evaluation using Precision@K;
 
-- document preprocessing;
-- semantic representation;
-- information retrieval;
-- evidence grounding;
-- generative response quality;
-- evaluation methodology.
+LLM-based assessment of faithfulness, context relevance, answer relevance, and reference alignment.
 
----
+Outside the current baseline
 
-# 3. Research Scope
+The current version does not implement native table reasoning, figure/image embeddings, dedicated OCR, audio/video processing, hybrid retrieval, reranking, enterprise authentication, or production-scale deployment. These are research extensions rather than existing capabilities.
 
-### Current scope
+3. System Architecture
 
-The current experimental pipeline processes:
+3.1 End-to-End RAG Architecture
 
-- PDF documents;
-- extracted textual content;
-- page-level metadata;
-- semantic chunks;
-- dense vector embeddings;
-- vector similarity retrieval;
-- LLM-based generation.
+flowchart LR
+    subgraph A[Offline Knowledge Indexing]
+        PDF[PDF Documents] --> LOAD[DocumentLoader<br/>Page-level extraction]
+        LOAD --> CLEAN[PDFTextCleaner<br/>Noise removal]
+        CLEAN --> ENC[EncodingCorrector<br/>Controlled glyph correction]
+        ENC --> CHUNK[PDFChunker<br/>Sentence-aware chunking]
+        CHUNK --> META[MetadataBuilder<br/>Document + page provenance]
+        META --> EMB[SentenceTransformer<br/>all-MiniLM-L6-v2]
+        EMB --> QD[(Qdrant<br/>384-D vectors + payload)]
+    end
 
-### Current non-scope
+    subgraph B[Online Question Answering]
+        Q[User Question] --> QE[Query Embedding<br/>all-MiniLM-L6-v2]
+        QE --> SEARCH[Cosine Similarity<br/>Top-K retrieval]
+        QD --> SEARCH
+        SEARCH --> EVID[Retrieved Evidence<br/>Chunks + provenance]
+        EVID --> GEN[Gemini<br/>Grounded generation]
+        Q --> GEN
+        GEN --> ANS[Answer<br/>with page references]
+    end
 
-The current version does not yet implement:
+    subgraph C[Experimental Evaluation]
+        GT[(Evaluation Dataset<br/>Questions + relevant pages<br/>+ reference answers)]
+        SEARCH --> RE[Retrieval Evaluation<br/>Precision@K]
+        GT --> RE
+        EVID --> GE[Generation Evaluation]
+        ANS --> GE
+        GT --> GE
+        GE --> MET[Faithfulness<br/>Context relevance<br/>Answer relevance<br/>Reference alignment]
+    end
 
-- image understanding outside extracted PDF text;
-- OCR as a dedicated pipeline;
-- native table understanding;
-- figure/image embeddings;
-- video or audio processing;
-- production-grade authentication;
-- enterprise-scale deployment.
+The architecture contains two operational paths. Offline indexing converts source documents into persistent vector representations. Online inference embeds a user question, retrieves evidence from the same vector space, and supplies that evidence to the generator. Evaluation is kept outside the operational path so that experimental metrics do not alter retrieval or generation behavior.
 
-The term **multimodal** describes the broader research direction. The present experimental implementation deliberately starts with PDF documents in order to establish a controlled and reproducible baseline.
+3.2 Information and Provenance Flow
 
----
-
-# 4. System Architecture
-
-## 4.1 End-to-End Architecture
-
-```mermaid
 flowchart TD
-    A[PDF Documents] --> B[Document Loader]
-    B --> C[Text Extraction]
-    C --> D[PDF Cleaning]
-    D --> E[Encoding Correction]
-    E --> F[Semantic Chunking]
-    F --> G[Metadata Builder]
-    G --> H[Embedding Model]
-    H --> I[Qdrant Vector Database]
-
-    Q[User Question] --> R[Query Embedding]
-    R --> I
-    I --> S[Top-K Retrieved Chunks]
-    S --> T[Gemini LLM]
-    Q --> T
-    T --> U[Grounded Answer]
-
-    S --> V[Retrieval Evaluation]
-    U --> W[LLM Evaluation]
-```
-
-The architecture explicitly separates **retrieval** from **generation**.
-
-This is important experimentally because an incorrect answer can result from:
-
-- inadequate retrieval;
-- inadequate generation;
-- or both.
-
----
-
-# 5. Project Structure
-
-```text
-multimodal-genai-decision-support/
-│
-├── data/
-│   ├── raw/
-│   ├── processed/
-│   ├── metadata/
-│   └── evaluation/
-│       └── rag_questions.json
-│
-├── notebooks/
-│
-├── src/
-│   ├── ingestion/
-│   │   └── document_loader.py
-│   │
-│   ├── cleaning/
-│   │   ├── pdf_cleaner.py
-│   │   └── encoding_corrector.py
-│   │
-│   ├── chunking/
-│   │   └── pdf_chunker.py
-│   │
-│   ├── metadata/
-│   │   └── metadata_builder.py
-│   │
-│   ├── embeddings/
-│   │   └── embedding_model.py
-│   │
-│   ├── retrieval/
-│   │   └── qdrant_store.py
-│   │
-│   ├── generation/
-│   │   └── llm_generator.py
-│   │
-│   └── evaluation/
-│       ├── retrieval_evaluator.py
-│       └── llm_evaluator.py
-│
-├── tests/
-│   └── test_rag.py
-│
-├── config/
-├── docs/
-│
-├── .env.example
-├── requirements.txt
-├── docker-compose.yml
-└── README.md
-```
-
----
-
-# 6. Technology Stack
-
-| Layer | Technology |
-|---|---|
-| Language | Python 3.11 |
-| PDF extraction | pypdf |
-| PDF processing | PyMuPDF |
-| Embeddings | Sentence Transformers |
-| Embedding model | `all-MiniLM-L6-v2` |
-| Vector database | Qdrant |
-| Vector metric | Cosine similarity |
-| LLM | Google Gemini |
-| Containers | Docker / Docker Compose |
-| Configuration | python-dotenv |
-| Evaluation | Python + Gemini |
-
-The current embedding model produces **384-dimensional vectors**.
+    P[PDF page] --> T[Extracted page text]
+    T --> C[Cleaned and corrected text]
+    C --> K[Semantic chunk]
+    K --> M{Chunk payload}
+    M --> M1[document_id]
+    M --> M2[file_name]
+    M --> M3[page]
+    M --> M4[chunk_id]
+    M --> M5[chunk_index]
+    K --> V[384-D embedding]
+    V --> S[(Qdrant point)]
+    M --> S
+    S --> R[Retrieved evidence]
+    R --> G[Generated answer]
+    M3 -. provenance .-> G
 
----
+Provenance is therefore not reconstructed after generation. It is attached to each retrieval unit before indexing and propagated with the retrieved evidence.
 
-# 7. Installation
+4. Processing and Retrieval Method
 
-## 7.1 Prerequisites
+4.1 PDF extraction and cleaning
 
-Install:
+DocumentLoader extracts text page by page and preserves document metadata. PDFTextCleaner removes recurrent boundary noise such as repeated headers and footers while retaining semantic content. EncodingCorrector applies explicit word-level corrections to known PDF glyph corruption; it intentionally avoids broad substitutions that could alter valid text.
 
-- Python 3.11;
-- Docker;
-- Docker Compose;
-- Git;
-- a Gemini API key.
+4.2 Chunk construction
 
-The project was developed and tested on macOS.
+PDFChunker operates page by page and uses sentence-aware segmentation. The baseline configuration is:
 
----
+Parameter
 
-## 7.2 Clone the Repository
+Value
 
-```bash
-git clone https://github.com/<USERNAME>/multimodal-genai-decision-support.git
-cd multimodal-genai-decision-support
-```
+Target chunk size
 
----
+1000 characters
 
-## 7.3 Create the Virtual Environment
+Overlap
 
-```bash
-python3.11 -m venv .venv
-```
+200 characters
 
-Activate it:
+Boundary strategy
 
-```bash
-source .venv/bin/activate
-```
+Sentence-aware
 
-Verify:
+Cross-page chunks
 
-```bash
-python --version
-```
+No
 
-Expected:
+This design favors traceability: each chunk remains associated with one source page. The trade-off is that semantic units spanning page boundaries are not represented as a single chunk.
 
-```text
-Python 3.11.x
-```
+4.3 Metadata model
 
----
+Each retrieval unit contains both text and provenance metadata:
 
-## 7.4 Install Dependencies
-
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-The main dependencies are:
-
-```text
-pypdf
-PyMuPDF
-python-dotenv
-sentence-transformers
-qdrant-client
-google-genai
-```
-
----
-
-# 8. Environment Configuration
-
-Create the environment file:
-
-```bash
-cp .env.example .env
-```
-
-Configure the Gemini API key:
-
-```env
-GEMINI_API_KEY=your_api_key_here
-```
-
-Never commit `.env` to Git.
-
-A corresponding `.env.example` should contain only placeholders.
-
----
-
-# 9. Start Qdrant
-
-Qdrant provides the vector storage layer.
-
-Start the service:
-
-```bash
-docker compose up -d
-```
-
-Check the running containers:
-
-```bash
-docker ps
-```
-
-The Qdrant service uses:
-
-```text
-HTTP API: 6333
-```
-
-The application uses the collection:
-
-```text
-ai_governance_documents
-```
-
-with:
-
-```text
-Vector dimension: 384
-Distance metric: cosine
-```
-
----
-
-# 10. Data Pipeline
-
-## 10.1 Document Ingestion
-
-The `DocumentLoader` reads PDF files and extracts their textual content page by page.
-
-The extracted representation preserves:
-
-- filename;
-- file type;
-- title;
-- author;
-- subject;
-- number of pages;
-- page number;
-- page text.
-
-Conceptually:
-
-```text
-PDF
- │
- ├── Page 1 → text
- ├── Page 2 → text
- ├── ...
- └── Page N → text
-```
-
-Page-level representation is important because it provides the first level of source traceability.
-
----
-
-# 11. PDF Cleaning
-
-Raw PDF extraction frequently introduces noise.
-
-The cleaning component addresses:
-
-- repeated headers;
-- repeated footers;
-- unnecessary whitespace;
-- line normalization;
-- page-boundary artifacts.
-
-Repeated boundary lines are detected statistically across pages and removed when they exceed the configured repetition threshold.
-
-The objective is not aggressive normalization.
-
-The objective is to remove structural noise while preserving semantic content.
-
----
-
-# 12. Encoding Correction
-
-PDF text extraction can produce corrupted glyphs because the internal character mapping of a PDF does not always correspond cleanly to Unicode.
-
-The project therefore implements controlled corrections for known extraction artifacts.
-
-The correction process uses explicit word-level mappings.
-
-This is deliberately conservative:
-
-```text
-Extracted text
-      │
-      ▼
-Known corruption patterns
-      │
-      ▼
-Controlled replacements
-      │
-      ▼
-Normalized text
-```
-
-This avoids broad replacement rules that could unintentionally alter valid content.
-
----
-
-# 13. Semantic Chunking
-
-Large documents must be divided into smaller units before semantic retrieval.
-
-The current chunker is sentence-aware and operates page by page.
-
-Current parameters:
-
-| Parameter | Value |
-|---|---:|
-| Target chunk size | 1000 |
-| Overlap | 200 |
-
-The chunking process attempts to:
-
-- preserve paragraph boundaries;
-- preserve sentence boundaries;
-- maintain contextual continuity;
-- avoid cutting words;
-- preserve page references.
-
-The result is a collection of semantically meaningful retrieval units.
-
----
-
-# 14. Metadata and Provenance
-
-Each chunk receives structured metadata.
-
-Example:
-
-```json
 {
   "chunk_id": "chunk_0107",
   "document_id": "...",
@@ -499,497 +163,362 @@ Example:
   "chunk_index": 107,
   "text": "..."
 }
-```
 
-This metadata serves two purposes:
+4.4 Semantic representation and retrieval
 
-1. retrieval filtering and organization;
-2. provenance and source traceability.
+The baseline embedding model is sentence-transformers/all-MiniLM-L6-v2, producing 384-dimensional dense vectors. The same model encodes document chunks and user queries. Qdrant stores the vectors and associated payloads, and retrieval uses cosine similarity. The current experiment retrieves K = 5 chunks per question.
 
-The system can therefore associate generated information with the document and page from which the evidence was retrieved.
+flowchart LR
+    Q[Question] --> E1[Query Encoder]
+    D[Document Chunk] --> E2[Chunk Encoder]
+    E1 --> QV[Query Vector]
+    E2 --> DV[Chunk Vector]
+    QV --> COS{Cosine Similarity}
+    DV --> COS
+    COS --> TOP[Ranked Top-K Evidence]
 
----
+4.5 Evidence-grounded generation
 
-# 15. Embedding Model
+Retrieved chunks are supplied to Gemini together with the user question. The generation prompt requires the model to use only the supplied context, avoid unsupported claims, acknowledge insufficient evidence, and cite relevant page numbers. This is a grounding constraint, not a guarantee of factual correctness; faithfulness is evaluated separately.
 
-The project uses:
+5. Evaluation Design
 
-```text
-sentence-transformers
-```
+5.1 Evaluation dataset
 
-with:
+data/evaluation/rag_questions.json currently contains 10 evaluation questions covering AI governance, organizational readiness, AI risks, transparency, training, cultural change, and responsible adoption. Each item contains a question, manually identified relevant pages, and a reference answer.
 
-```text
-all-MiniLM-L6-v2
-```
-
-Each text chunk is transformed into a 384-dimensional semantic vector.
-
-```text
-Text
- │
- ▼
-all-MiniLM-L6-v2
- │
- ▼
-[384-dimensional vector]
-```
-
-The same embedding model is used for:
-
-- document chunks;
-- user queries.
-
-This allows the query and document representations to be compared in the same vector space.
-
----
-
-# 16. Vector Storage and Retrieval
-
-Qdrant stores:
-
-- embeddings;
-- chunk identifiers;
-- document identifiers;
-- page numbers;
-- original text;
-- additional metadata.
-
-For a query:
-
-```text
-User Question
-      │
-      ▼
-Query Embedding
-      │
-      ▼
-Cosine Similarity
-      │
-      ▼
-Top-K Chunks
-```
-
-The current experimental configuration uses:
-
-```text
-K = 5
-```
-
----
-
-# 17. Retrieval-Augmented Generation
-
-The retrieved chunks are passed to Gemini as explicit document context.
-
-The generation component instructs the model to:
-
-1. use only the supplied context;
-2. avoid external knowledge;
-3. avoid unsupported claims;
-4. acknowledge insufficient evidence;
-5. cite relevant page numbers.
-
-The resulting process is:
-
-```text
-Question
-   +
-Retrieved Evidence
-   │
-   ▼
-Gemini
-   │
-   ▼
-Grounded Answer
-```
-
-The design is intended to reduce unsupported generation by constraining the model to retrieved evidence.
-
----
-
-# 18. Evaluation Dataset
-
-The evaluation dataset is stored in:
-
-```text
-data/evaluation/rag_questions.json
-```
-
-Each evaluation item contains:
-
-```json
 {
   "id": "q001",
   "question": "...",
   "relevant_pages": [16, 35, 36],
   "reference_answer": "..."
 }
-```
 
-The current dataset contains **10 questions** focused on AI governance, organizational readiness, AI risks, transparency, training, cultural change and responsible adoption.
+The dataset is an initial experimental benchmark, not a statistically representative corpus.
 
-The dataset provides explicit ground-truth information for the experimental evaluation.
+5.2 Retrieval evaluation
 
----
+The implemented retrieval metric is Precision@K:
 
-# 19. Retrieval Evaluation
+[
+\mathrm{Precision@K} = \frac{\text{relevant items among the top K retrieved items}}{K}
+]
 
-The initial retrieval evaluator implements:
+In the current implementation, relevance is approximated using manually annotated page identifiers. This operationalization has an important limitation: a semantically useful chunk can be counted as non-relevant if its page was not included in the manually specified relevant-page set. Consequently, page-based Precision@K should be interpreted as a baseline retrieval signal rather than a complete measure of semantic relevance.
 
-### Precision@K
+Planned retrieval metrics include Recall@K, Hit Rate@K, and Mean Reciprocal Rank (MRR).
 
-For a given query:
+5.3 Generation evaluation
 
-```text
-Precision@K =
-relevant retrieved results / K
-```
+A separate Gemini-based evaluator scores four dimensions on a 0–1 scale:
 
-The current experiment uses:
+Dimension
 
-```text
-K = 5
-```
+Operational question
 
-Additional metrics planned for the retrieval evaluation are:
+Faithfulness
 
-- Recall@K;
-- Hit Rate@K;
-- Mean Reciprocal Rank (MRR).
+Are generated claims supported by retrieved evidence?
 
-These metrics are important because Precision@K alone does not fully characterize retrieval quality.
-
----
-
-# 20. LLM Evaluation
-
-The project implements an LLM-based evaluator using Gemini.
-
-The evaluator considers:
-
-### 20.1 Faithfulness
-
-Are the claims in the generated answer supported by the retrieved evidence?
-
-### 20.2 Context Relevance
+Context relevance
 
 Is the retrieved evidence relevant to the question?
 
-### 20.3 Answer Relevance
+Answer relevance
 
-Does the generated answer directly address the question?
+Does the answer address the question directly?
 
-### 20.4 Reference Alignment
+Reference alignment
 
-Does the generated answer cover the important information contained in the reference answer?
+Does the answer cover information represented in the reference answer?
 
-Each metric is scored between:
+These scores are LLM-based judgments, not human-validated ground truth. They should therefore be treated as experimental indicators and, in later work, compared with human assessment.
 
-```text
-0.0 and 1.0
-```
+5.4 Evaluation architecture
 
-The evaluator also produces a textual justification.
+flowchart LR
+    DATA[(Evaluation Item)] --> Q[Question]
+    DATA --> RP[Relevant Pages]
+    DATA --> REF[Reference Answer]
 
----
+    Q --> RET[Retriever]
+    RET --> TOP[Top-K Chunks]
+    TOP --> P[Precision@K]
+    RP --> P
 
-# 21. Experimental Test
+    Q --> LLM[Generator]
+    TOP --> LLM
+    LLM --> A[Generated Answer]
 
-The complete test can be launched with:
+    Q --> J[LLM Evaluator]
+    TOP --> J
+    A --> J
+    REF --> J
+    J --> SCORES[Four Evaluation Scores]
 
-```bash
-python -m tests.test_rag
-```
+This design intentionally evaluates retrieval and generation separately. A strong generated answer cannot, by itself, establish that retrieval quality is strong, and a strong retrieval result does not guarantee a faithful answer.
 
-The current test pipeline performs:
+6. Initial Experimental Result
 
-```text
-1. Load evaluation questions
-2. Generate query embeddings
-3. Retrieve top-K chunks
-4. Evaluate retrieval
-5. Generate grounded answers
-6. Evaluate generated answers
-7. Aggregate results
-```
+For evaluation question q001, the manually annotated relevant pages were 16, 35, and 36. The first five retrieved chunks originated from pages 19, 28, 36, 28, and 12, resulting in Precision@5 = 0.20 under the page-based relevance definition.
 
----
+The generated answer was subsequently scored by the LLM evaluator as follows:
 
-# 22. Initial Experimental Observation
+Metric
 
-A first experiment was conducted on question `q001`.
+Score
 
-The system retrieved:
+Faithfulness
 
-```text
-Rank 1 → Page 19
-Rank 2 → Page 28
-Rank 3 → Page 36
-Rank 4 → Page 28
-Rank 5 → Page 12
-```
+1.00
 
-The manually defined relevant pages were:
+Context relevance
 
-```text
-[16, 35, 36]
-```
+1.00
 
-The resulting:
+Answer relevance
 
-```text
-Precision@5 = 0.200
-```
+1.00
 
-The generated answer was subsequently evaluated with the LLM evaluator.
+Reference alignment
 
-The observed scores were:
+0.90
 
-| Metric | Score |
-|---|---:|
-| Faithfulness | 1.000 |
-| Context Relevance | 1.000 |
-| Answer Relevance | 1.000 |
-| Reference Alignment | 0.900 |
+This single observation does not establish overall system performance. It instead exposes a methodological issue: the manually defined page set and the LLM's semantic assessment of retrieved evidence can produce different relevance signals. A larger evaluation is required before drawing comparative or general conclusions.
 
-These observations demonstrate that retrieval evaluation and answer evaluation can produce different signals.
+The planned ten-question generation evaluation could not be completed in one run because the Gemini Free Tier request quota was reached. This is an experimental infrastructure constraint; incomplete results are not reported as a completed benchmark.
 
-In particular, page-based Precision@5 should not be interpreted as a complete measure of semantic retrieval quality.
+7. Reproducibility
 
-A retrieved page may contain useful evidence without being included in a manually specified ground-truth page set.
+The main experimental variables are explicit and should be recorded for each run:
 
----
+Component
 
-# 23. Experimental Limitation: API Quota
+Baseline configuration
 
-During the ten-question experiment, the Gemini Free Tier request limit was reached.
+Input modality
 
-The error was:
+PDF text
 
-```text
-Rate limit exceeded for model gemini-3.8-flash
-limit: 20 requests per day on Free Tier
-```
+Chunk size
 
-Consequently, the complete ten-question LLM evaluation could not be completed in a single run.
+1000 characters
 
-This is an infrastructure constraint rather than a failure of the RAG architecture.
+Chunk overlap
 
-For reproducible experimentation, future runs should consider:
+200 characters
 
-- higher API quotas;
-- response caching;
-- fewer LLM evaluation calls;
-- separate retrieval and generation experiments;
-- alternative evaluation models.
-
-The repository should therefore not claim a complete ten-question LLM evaluation until that experiment has actually been completed.
-
----
-
-# 24. Reproducibility Protocol
-
-A reproducible experiment should record:
-
-```text
-Document collection
-       ↓
-Preprocessing configuration
-       ↓
-Chunk size and overlap
-       ↓
 Embedding model
-       ↓
-Vector database configuration
-       ↓
-Top-K retrieval parameter
-       ↓
+
+all-MiniLM-L6-v2
+
+Embedding dimension
+
+384
+
+Vector database
+
+Qdrant
+
+Similarity
+
+Cosine
+
+Retrieval depth
+
+Top-5
+
 Generation model
-       ↓
-Evaluation dataset
-       ↓
-Evaluation metrics
-```
 
-The project keeps these components explicit so that future experiments can compare different configurations.
+Gemini
 
----
+Retrieval metric
 
-# 25. Research Extensions
+Precision@5
 
-## 25.1 Retrieval
+Generation evaluation
 
-Future experiments may compare:
+Gemini-based four-dimension evaluator
 
-- dense retrieval;
-- lexical retrieval;
-- hybrid retrieval;
-- reranking;
-- alternative embedding models.
+Future experiments should version the document corpus, evaluation dataset, model identifiers, prompts, and configuration values so that changes in performance can be attributed to controlled modifications rather than undocumented pipeline drift.
 
-## 25.2 Document Understanding
+8. Repository Structure
 
-The broader multimodal direction may later include:
+multimodal-genai-decision-support/
+├── data/
+│   ├── raw/                 # local source PDFs; excluded from Git
+│   ├── processed/           # local processed artifacts; excluded from Git
+│   ├── metadata/
+│   └── evaluation/
+│       └── rag_questions.json
+├── notebooks/
+├── src/
+│   ├── ingestion/
+│   │   └── document_loader.py
+│   ├── cleaning/
+│   │   ├── pdf_cleaner.py
+│   │   └── encoding_corrector.py
+│   ├── chunking/
+│   │   └── pdf_chunker.py
+│   ├── metadata/
+│   │   └── metadata_builder.py
+│   ├── embeddings/
+│   │   └── embedding_model.py
+│   ├── retrieval/
+│   │   └── qdrant_store.py
+│   ├── generation/
+│   │   └── llm_generator.py
+│   └── evaluation/
+│       ├── retrieval_evaluator.py
+│       └── llm_evaluator.py
+├── tests/
+│   └── test_rag.py
+├── config/
+├── docs/
+├── .env.example
+├── requirements.txt
+├── docker-compose.yml
+└── README.md
 
-- PDF figures;
-- tables;
-- OCR;
-- document layout;
-- visual embeddings.
+9. Technology Stack
 
-## 25.3 Generation
+Layer
 
-Potential extensions include:
+Technology
 
-- structured citations;
-- evidence highlighting;
-- confidence estimation;
-- abstention when evidence is insufficient;
-- contradiction detection.
+Language
 
-## 25.4 Evaluation
+Python 3.11
 
-Future experiments may include:
+PDF extraction
 
-- larger benchmark datasets;
-- human evaluation;
-- ablation studies;
-- embedding-model comparison;
-- retrieval-configuration comparison;
-- generation-model comparison.
+pypdf
 
----
+PDF processing dependency
 
-# 26. Scientific Positioning
+PyMuPDF
 
-The project sits at the intersection of:
+Embeddings
 
-- Generative Artificial Intelligence;
-- Retrieval-Augmented Generation;
-- Information Retrieval;
-- Data Engineering;
-- Knowledge Management;
-- Digital Transformation;
-- AI Governance;
-- Decision Support Systems.
+Sentence Transformers
 
-The broader objective is to study how data and organizational knowledge can be transformed into traceable AI-assisted decision support.
+Baseline embedding model
 
-The architecture therefore emphasizes:
+all-MiniLM-L6-v2
 
-```text
-Data
-  ↓
-Knowledge
-  ↓
-Retrieval
-  ↓
-Evidence
-  ↓
+Vector database
+
+Qdrant
+
+Similarity metric
+
+Cosine similarity
+
 Generation
-  ↓
-Decision Support
-```
 
-with governance and traceability considered throughout the pipeline.
+Google Gemini
 
----
+Containerization
 
-# 27. Limitations
+Docker / Docker Compose
 
-The current prototype has several limitations:
+Environment configuration
 
-1. **PDF-only implementation**  
-   The current system does not yet implement complete multimodal processing.
+python-dotenv
 
-2. **Extraction dependency**  
-   Retrieval quality depends on the quality of PDF text extraction.
-
-3. **Page-based ground truth**  
-   Relevant pages are manually defined and may not capture every semantically useful passage.
-
-4. **Single embedding baseline**  
-   No systematic comparison between embedding models has yet been performed.
-
-5. **Dense retrieval only**  
-   Hybrid retrieval and reranking remain future work.
-
-6. **Small evaluation dataset**  
-   Ten evaluation questions are appropriate for an initial prototype but are not sufficient for statistically robust conclusions.
-
-7. **LLM evaluation quota**  
-   The Gemini Free Tier limits the number of evaluation calls that can be performed per day.
-
-These limitations are part of the experimental status of the project and should be considered when interpreting results.
-
----
-
-# 28. Repository Status
-
-**Current status: Research Prototype**
-
-Implemented:
-
-- [x] PDF ingestion
-- [x] PDF text extraction
-- [x] PDF cleaning
-- [x] Encoding correction
-- [x] Sentence-aware chunking
-- [x] Metadata construction
-- [x] Sentence embeddings
-- [x] Qdrant vector storage
-- [x] Semantic retrieval
-- [x] Grounded Gemini generation
-- [x] Evaluation dataset
-- [x] Precision@K
-- [x] LLM-based evaluation
-
-Planned:
-
-- [ ] Recall@K
-- [ ] Hit Rate@K
-- [ ] MRR
-- [ ] Retrieval ablation study
-- [ ] Embedding-model comparison
-- [ ] Hybrid retrieval
-- [ ] Reranking
-- [ ] Larger evaluation benchmark
-- [ ] Multimodal PDF understanding
-
----
-
-# 29. Conclusion
-
-This repository provides a modular research prototype for evidence-grounded Generative AI decision support.
-
-The architecture establishes a complete pipeline from:
-
-```text
-Unstructured PDF Knowledge
-          ↓
-Structured Text
-          ↓
-Semantic Representation
-          ↓
-Vector Retrieval
-          ↓
-Retrieved Evidence
-          ↓
-Grounded Generation
-          ↓
 Evaluation
-```
 
-The main research value of the prototype lies in its separation of ingestion, retrieval, generation and evaluation.
+Python + Gemini
 
-This architecture provides a foundation for future experimental work on trustworthy and traceable GenAI systems for digital transformation and AI governance.
+10. Installation and Execution
 
----
+Prerequisites
 
-# 30. License
+Python 3.11, Docker, Docker Compose, Git, and a Gemini API key are required.
 
-This repository is intended primarily for research and educational purposes.
+Clone and configure
 
-A specific open-source license should be added before public distribution according to the intended reuse conditions.
+git clone https://github.com/soumailaniampa11/multimodal-genai-decision-support.git
+cd multimodal-genai-decision-support
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+cp .env.example .env
+
+Set the API key in .env:
+
+GEMINI_API_KEY=your_api_key_here
+
+.env must not be committed to version control.
+
+Start Qdrant
+
+docker compose up -d
+docker ps
+
+The baseline collection is ai_governance_documents, configured for 384-dimensional vectors and cosine distance.
+
+Run the experimental pipeline
+
+python -m tests.test_rag
+
+11. Limitations and Threats to Validity
+
+The current prototype should be interpreted as an experimental baseline. Its principal limitations are:
+
+Corpus scope — the current implementation and initial experiment use PDF textual content only.
+
+Extraction dependency — downstream quality depends on the fidelity of PDF text extraction.
+
+Page-level relevance labels — manually selected pages provide coarse relevance judgments and can underestimate semantically useful retrievals.
+
+Single embedding baseline — no controlled embedding-model comparison has yet been conducted.
+
+Dense retrieval only — lexical retrieval, hybrid search, and reranking are not yet implemented.
+
+Small evaluation set — ten questions are sufficient for pipeline validation but not for statistically robust claims.
+
+LLM-as-judge evaluation — generation scores may inherit evaluator-model biases and require human validation.
+
+API quota dependency — generation experiments are currently constrained by external model quotas.
+
+12. Research Roadmap
+
+The next experiments should prioritize methodological improvements rather than additional interface features:
+
+implement Recall@K, Hit Rate@K, and MRR;
+
+refine relevance annotation from page-level labels toward chunk- or passage-level judgments;
+
+compare dense retrieval configurations and embedding models;
+
+introduce lexical/hybrid retrieval and reranking as controlled ablations;
+
+add response caching and experiment logging;
+
+compare LLM-based evaluation with human judgments;
+
+extend PDF understanding to tables, figures, layout, OCR, and visual representations only after the textual baseline is stable.
+
+The broader multimodal direction should therefore be treated as a research progression from a validated textual baseline, not as an already implemented capability.
+
+13. Scientific Positioning
+
+The project lies at the intersection of Retrieval-Augmented Generation, Information Retrieval, Data Engineering, Knowledge Management, Decision Support Systems, Digital Transformation, and AI Governance.
+
+Its primary research contribution at the current stage is not a new retrieval algorithm or foundation model. It is a modular experimental framework for studying how organizational documentary evidence can be processed, retrieved, propagated with provenance, used to constrain generative answers, and evaluated at distinct stages of the RAG pipeline.
+
+This positioning makes the prototype suitable for subsequent experiments on trustworthy and traceable GenAI decision support, while keeping claims aligned with what has actually been implemented and measured.
+
+14. Repository Status
+
+Status: Research prototype / experimental baseline
+
+Implemented: PDF ingestion and extraction, cleaning, encoding correction, sentence-aware chunking, provenance metadata, dense embeddings, Qdrant storage, semantic retrieval, Gemini-based grounded generation, a 10-question evaluation dataset, Precision@K, and LLM-based generation evaluation.
+
+Planned: additional retrieval metrics, improved relevance annotations, retrieval ablations, embedding comparisons, hybrid retrieval, reranking, larger evaluation sets, human evaluation, and multimodal PDF understanding.
+
+15. License
+
+This repository is currently intended for research and educational use. A specific open-source license should be selected before broader redistribution or reuse.
