@@ -1,0 +1,62 @@
+[
+  {
+    "id": "q001",
+    "question": "Quels sont les principaux obstacles à l'adoption de l'IA identifiés dans le document, et quelles recommandations sont proposées ?",
+    "relevant_pages": [16, 35, 36],
+    "reference_answer": "Le document identifie notamment les préoccupations liées à la confidentialité des données, les investissements nécessaires en compétences et en infrastructures, ainsi que les considérations éthiques. Il souligne également la préparation technologique, la préparation des effectifs, l'éducation et la formation continues, la préparation culturelle et le leadership. Les recommandations comprennent l'alignement stratégique, une gouvernance appropriée, le développement des compétences et de la sensibilisation, la collaboration, les ressources et systèmes favorisant l'expérimentation sécurisée, ainsi que le soutien du leadership."
+  },
+  {
+    "id": "q002",
+    "question": "Quels éléments caractérisent la préparation organisationnelle à l'adoption de l'IA ?",
+    "relevant_pages": [35, 36],
+    "reference_answer": "La préparation organisationnelle à l'IA comprend notamment la préparation de l'infrastructure technologique, la préparation des effectifs, l'éducation et la formation continues, ainsi que la préparation culturelle et le leadership. Le document met également en avant l'éducation et la sensibilisation, la collaboration, l'alignement stratégique, les systèmes d'audit et de préparation, les ressources et le soutien, ainsi qu'un environnement permettant l'expérimentation sécurisée."
+  },
+  {
+    "id": "q003",
+    "question": "Quels sont les principaux risques associés à l'utilisation de l'IA identifiés dans le document ?",
+    "relevant_pages": [19, 26, 28],
+    "reference_answer": "Le document identifie notamment les risques liés aux contenus inexacts, peu fiables ou biaisés, aux atteintes à la propriété intellectuelle, à la confidentialité des données et aux conséquences involontaires. Il aborde également les risques de discrimination, les enjeux de cybersécurité, les difficultés de conformité juridique et réglementaire et les risques liés à l'approvisionnement en technologies d'IA."
+  },
+  {
+    "id": "q004",
+    "question": "Pourquoi la gouvernance est-elle importante dans l'adoption et le déploiement de l'IA ?",
+    "relevant_pages": [16, 29, 37],
+    "reference_answer": "La gouvernance permet d'encadrer l'adoption de l'IA, d'aligner son utilisation avec les objectifs stratégiques de l'organisation et de gérer les risques associés. Le document met notamment en avant la gestion des risques, l'intégration de l'IA dans les cadres existants, l'amélioration de la culture numérique et l'adoption de pratiques et standards favorisant une utilisation responsable."
+  },
+  {
+    "id": "q005",
+    "question": "Quelles mesures sont proposées pour favoriser le changement culturel nécessaire à l'adoption de l'IA ?",
+    "relevant_pages": [36],
+    "reference_answer": "Le document propose notamment de rendre l'éducation et la sensibilisation accessibles, de favoriser la collaboration, d'assurer l'alignement stratégique, de mettre en place des systèmes de préparation et d'audit, de fournir des ressources et du soutien, de créer un environnement sûr pour l'expérimentation, de développer un état d'esprit favorable à la croissance et à l'innovation, et de promouvoir un leadership exemplaire."
+  },
+  {
+    "id": "q006",
+    "question": "Quels sont les principaux enjeux liés aux données, à la confidentialité et à la propriété intellectuelle dans l'utilisation de l'IA ?",
+    "relevant_pages": [19, 26, 28],
+    "reference_answer": "Le document souligne les préoccupations liées à la confidentialité et à la protection des données sensibles et personnelles, ainsi que les risques de violations de données. Il identifie également les risques d'atteinte à la propriété intellectuelle, au droit d'auteur et aux licences, notamment dans le contexte de l'IA générative. Ces enjeux nécessitent des mesures de gouvernance, de sécurité, de transparence et de gestion des risques."
+  },
+  {
+    "id": "q007",
+    "question": "Quel rôle jouent l'éducation, la formation et les compétences dans la préparation à l'IA ?",
+    "relevant_pages": [29, 35, 36, 37],
+    "reference_answer": "L'éducation, la formation et le développement des compétences sont présentés comme des éléments essentiels de la préparation organisationnelle. Le document souligne la nécessité d'améliorer la compréhension de l'IA, de développer la culture numérique, de sensibiliser les collaborateurs, de favoriser l'apprentissage continu et de permettre aux organisations de mieux comprendre les opportunités et les risques liés à l'IA."
+  },
+  {
+    "id": "q008",
+    "question": "Quelles recommandations le document formule-t-il pour instaurer davantage de transparence et de confiance dans les systèmes d'IA ?",
+    "relevant_pages": [12, 37],
+    "reference_answer": "Le document recommande notamment d'informer clairement les utilisateurs lorsque l'IA est utilisée ou lorsqu'elle produit du contenu, de permettre aux personnes concernées de contester les décisions ou résultats issus de l'IA et d'améliorer la transparence concernant les données, les modèles et les systèmes utilisés. Il recommande également des pratiques de gouvernance et de collaboration favorisant la confiance."
+  },
+  {
+    "id": "q009",
+    "question": "Quelles bonnes pratiques sont proposées pour intégrer l'IA dans les organisations ?",
+    "relevant_pages": [37],
+    "reference_answer": "Le document recommande une approche proactive, l'intégration de l'IA dans les cadres et processus existants, l'amélioration de la culture et de la littératie numériques, l'adoption de standards de sécurité appropriés et le développement de la collaboration et des standards. Ces pratiques visent à favoriser une adoption structurée et responsable de l'IA."
+  },
+  {
+    "id": "q010",
+    "question": "Quels facteurs organisationnels et managériaux peuvent faciliter une adoption responsable de l'IA ?",
+    "relevant_pages": [16, 35, 36, 37],
+    "reference_answer": "Les facteurs identifiés comprennent l'alignement de l'IA avec la stratégie de l'organisation, une infrastructure technologique adaptée, la préparation des effectifs, la formation continue, la préparation culturelle, le leadership, une gouvernance appropriée, la collaboration, la mise à disposition de ressources et un environnement permettant l'expérimentation sécurisée. Le document recommande également l'intégration de l'IA dans les cadres existants et l'amélioration de la culture numérique."
+  }
+]

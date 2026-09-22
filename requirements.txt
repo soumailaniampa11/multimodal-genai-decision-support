@@ -1,0 +1,15 @@
+# Document processing
+pypdf
+PyMuPDF
+
+# Environment configuration
+python-dotenv
+
+# Embeddings
+sentence-transformers
+
+# Vector database
+qdrant-client
+
+# LLM
+openai
