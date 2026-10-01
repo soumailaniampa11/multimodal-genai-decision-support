@@ -12,6 +12,7 @@ config = load_config()
 
 EVALUATION_FILE = config["data"]["evaluation_file"]
 TOP_K = config["retrieval"]["top_k"]
+SCOPE = config["retrieval"]["evaluation_scope"]
 
 
 def load_evaluation_questions():
@@ -41,21 +42,24 @@ def main():
     print()
     print(f"Evaluation questions: {len(questions)}")
     print(f"Top-K retrieval: {TOP_K}")
+    print(f"Retrieval scope: {SCOPE}")
 
     # ============================================================
     # INITIALIZE COMPONENTS ONCE
     # ============================================================
 
-    embedding_model = EmbeddingModel(
-        model_name=config["embeddings"]["model_name"],
-    )
+    embedding_model = EmbeddingModel(**config["embeddings"])
     store = QdrantStore(**config["qdrant"])
     generator = LLMGenerator(
-        model_name=config["generation"]["model_name"],
+        **config["generation"],
+        ollama=config["ollama"],
+        huggingface=config["huggingface"],
     )
     retrieval_evaluator = RetrievalEvaluator()
     llm_evaluator = LLMEvaluator(
-        model_name=config["evaluation"]["model_name"],
+        **config["evaluation"],
+        ollama=config["ollama"],
+        huggingface=config["huggingface"],
     )
 
     # ============================================================
@@ -104,13 +108,18 @@ def main():
         print("RETRIEVAL")
         print("-" * 80)
 
-        query_vector = embedding_model.model.encode(
+        query_vector = embedding_model.encode_query(
             question
-        ).tolist()
+        )
 
         results = store.search(
             query_vector=query_vector,
             limit=TOP_K,
+            document_id=(
+                evaluation.get("relevant_document")
+                if SCOPE == "reference_document"
+                else None
+            ),
         )
 
         print()
@@ -125,6 +134,7 @@ def main():
 
             print(
                 f"#{rank} | "
+                f"Doc: {payload['document_id']} | "
                 f"Page: {payload['page']} | "
                 f"Chunk: {payload['chunk_id']} | "
                 f"Score: {result.score:.4f}"
@@ -138,6 +148,7 @@ def main():
             results=results,
             relevant_pages=relevant_pages,
             k=TOP_K,
+            relevant_document=evaluation.get("relevant_document"),
         )
 
         print()

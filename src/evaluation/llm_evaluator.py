@@ -1,23 +1,26 @@
-import os
 import json
 from typing import Any
 
-from dotenv import load_dotenv
-from google import genai
+from src.llm.llm_client import create_llm_client
 
 
 class LLMEvaluator:
 
-    def __init__(self, model_name: str = "gemini-3.8-flash"):
-        load_dotenv()
-
-        api_key = os.getenv("GEMINI_API_KEY")
-
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY is not configured.")
-
+    def __init__(
+        self,
+        model_name: str = "gemini-3.8-flash",
+        provider: str = "gemini",
+        ollama: dict | None = None,
+        huggingface: dict | None = None,
+    ):
         self.model_name = model_name
-        self.client = genai.Client(api_key=api_key)
+        self.provider = provider
+        self.client = create_llm_client(
+            provider=provider,
+            model_name=model_name,
+            ollama=ollama,
+            huggingface=huggingface,
+        )
 
     def evaluate(
         self,
@@ -98,12 +101,10 @@ Return ONLY valid JSON with exactly this structure:
 }}
 """
 
-        response = self.client.interactions.create(
-            model=self.model_name,
-            input=prompt,
-        )
-
-        text = response.output_text.strip()
+        text = self.client.complete(
+            prompt,
+            json_output=True,
+        ).strip()
 
         if text.startswith("```"):
             text = text.strip("`")
@@ -115,7 +116,7 @@ Return ONLY valid JSON with exactly this structure:
             result = json.loads(text)
         except json.JSONDecodeError as exc:
             raise ValueError(
-                f"Gemini returned invalid JSON:\n{text}"
+                f"{self.model_name} returned invalid JSON:\n{text}"
             ) from exc
 
         self._validate_result(result)

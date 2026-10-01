@@ -2,15 +2,28 @@
 # Change experimental parameters here instead of in the code.
 
 data:
+  # Folder indexed by tests/test_qdrant.py. Supported formats:
+  # PDF (with OCR for scanned pages), DOCX, PPTX, XLSX, CSV, HTML,
+  # TXT, Markdown and images (OCR).
+  raw_dir: data/raw
   pdf_path: data/raw/GovInst-AI-Whitepaper.pdf
   evaluation_file: data/evaluation/rag_questions.json
+
+ingestion:
+  # Tesseract languages used for images and scanned PDF pages.
+  ocr_languages: eng+fra
 
 chunking:
   chunk_size: 1000
   chunk_overlap: 200
 
 embeddings:
-  model_name: all-MiniLM-L6-v2
+  # Multilingual retrieval model (FR/EN and ~100 languages), 384 dims,
+  # inputs up to 512 tokens. Previous baseline: all-MiniLM-L6-v2
+  # (English only, no prefixes).
+  model_name: intfloat/multilingual-e5-small
+  query_prefix: "query: "
+  passage_prefix: "passage: "
 
 qdrant:
   host: localhost
@@ -19,9 +32,40 @@ qdrant:
 
 retrieval:
   top_k: 5
+  # Scope used by the evaluation scripts:
+  #   corpus:             search all indexed documents (real use case)
+  #   reference_document: search only the document each question was
+  #                       annotated on (comparable with the single-document
+  #                       baseline)
+  evaluation_scope: corpus
 
+# LLM provider:
+#   "huggingface": open-weight model hosted by Hugging Face Inference
+#                  Providers, no download (needs HF_TOKEN in .env)
+#   "ollama":      same kind of model run locally, no quota (~2-5 GB per model)
+#   "gemini":      Google API (needs GEMINI_API_KEY in .env)
+# Example model names:
+#   huggingface: Qwen/Qwen2.5-7B-Instruct, meta-llama/Llama-3.1-8B-Instruct
+#   ollama:      qwen2.5:3b, llama3.2:3b, qwen2.5:7b, llama3.1:8b
+#   gemini:      gemini-3.8-flash
+#   (3B models, ~2 GB each, for limited bandwidth; 7-8B give better quality)
 generation:
-  model_name: gemini-3.8-flash
+  provider: ollama
+  model_name: llama3.2:3b
 
+# Use a different model from generation to limit self-evaluation bias.
 evaluation:
-  model_name: gemini-3.8-flash
+  provider: ollama
+  model_name: llama3.2:3b
+
+huggingface:
+  base_url: https://router.huggingface.co/v1
+  temperature: 0.0
+  max_tokens: 1024
+  seed: 42
+
+ollama:
+  host: http://localhost:11434
+  temperature: 0.0
+  context_window: 8192
+  seed: 42

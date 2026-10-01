@@ -28,7 +28,11 @@ class PDFTextCleaner:
         Clean all pages of a PDF document.
         """
 
-        repeated_lines = self._detect_repeated_lines(document)
+        # Running headers and footers only exist in paginated formats.
+        if document.get("file_type", "pdf") in {"pdf", "pptx"}:
+            repeated_lines = self._detect_repeated_lines(document)
+        else:
+            repeated_lines = set()
 
         cleaned_pages = []
 
@@ -85,7 +89,8 @@ class PDFTextCleaner:
             for line in set(boundary_lines):
                 counter[line] += 1
 
-        threshold = total_pages * self.repetition_threshold
+        # A line seen on a single page is never a header or footer.
+        threshold = max(2, total_pages * self.repetition_threshold)
 
         repeated_lines = {
             line

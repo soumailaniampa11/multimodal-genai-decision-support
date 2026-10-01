@@ -24,13 +24,11 @@ def main():
     relevant_pages = item["relevant_pages"]
 
     # Generate query embedding
-    embedding_model = EmbeddingModel(
-        model_name=config["embeddings"]["model_name"],
-    )
+    embedding_model = EmbeddingModel(**config["embeddings"])
 
-    query_vector = embedding_model.model.encode(
+    query_vector = embedding_model.encode_query(
         question
-    ).tolist()
+    )
 
     # Retrieve documents
     store = QdrantStore(**config["qdrant"])
@@ -47,6 +45,7 @@ def main():
         results=results,
         relevant_pages=relevant_pages,
         k=config["retrieval"]["top_k"],
+        relevant_document=item.get("relevant_document"),
     )
 
     print()

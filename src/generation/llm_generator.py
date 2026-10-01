@@ -1,7 +1,4 @@
-import os
-
-from dotenv import load_dotenv
-from google import genai
+from src.llm.llm_client import create_llm_client
 
 
 class LLMGenerator:
@@ -12,19 +9,17 @@ class LLMGenerator:
     def __init__(
         self,
         model_name: str = "gemini-3.8-flash",
+        provider: str = "gemini",
+        ollama: dict | None = None,
+        huggingface: dict | None = None,
     ):
-        load_dotenv()
-
-        api_key = os.getenv("GEMINI_API_KEY")
-
-        if not api_key:
-            raise ValueError(
-                "GEMINI_API_KEY is not configured."
-            )
-
         self.model_name = model_name
-        self.client = genai.Client(
-            api_key=api_key,
+        self.provider = provider
+        self.client = create_llm_client(
+            provider=provider,
+            model_name=model_name,
+            ollama=ollama,
+            huggingface=huggingface,
         )
 
     def generate(
@@ -45,7 +40,7 @@ class LLMGenerator:
                 f"""
 SOURCE {index}
 Document: {payload["document_id"]}
-Page: {payload["page"]}
+{payload.get("unit", "page").capitalize()}: {payload["page"]}
 Chunk: {payload["chunk_id"]}
 
 Content:
@@ -65,7 +60,7 @@ Rules:
 - Do not use external knowledge.
 - If the context does not contain enough information, say so.
 - Clearly distinguish information supported by the document.
-- Cite the relevant page numbers in the answer.
+- Cite the document and page (or slide, sheet, section) for each claim.
 - Give a concise but useful answer.
 """
 
@@ -81,9 +76,4 @@ USER QUESTION
 {question}
 """
 
-        response = self.client.interactions.create(
-            model=self.model_name,
-            input=prompt,
-        )
-
-        return response.output_text
+        return self.client.complete(prompt)

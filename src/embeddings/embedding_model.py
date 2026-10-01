@@ -14,8 +14,22 @@ class EmbeddingModel:
     def __init__(
         self,
         model_name: str = "all-MiniLM-L6-v2",
+        query_prefix: str = "",
+        passage_prefix: str = "",
     ):
+        """
+        Args:
+            model_name:
+                Sentence-Transformers model name.
+
+            query_prefix, passage_prefix:
+                Prefixes some retrieval models are trained with
+                (E5 models expect "query: " and "passage: ").
+        """
+
         self.model_name = model_name
+        self.query_prefix = query_prefix
+        self.passage_prefix = passage_prefix
         self.model = SentenceTransformer(model_name)
 
     def encode(
@@ -29,11 +43,15 @@ class EmbeddingModel:
         an embedding vector.
         """
 
-        texts = [chunk["text"] for chunk in chunks]
+        texts = [
+            self.passage_prefix + chunk["text"]
+            for chunk in chunks
+        ]
 
         embeddings = self.model.encode(
             texts,
             show_progress_bar=True,
+            normalize_embeddings=True,
         )
 
         embedded_chunks = []
@@ -46,9 +64,21 @@ class EmbeddingModel:
 
         return embedded_chunks
 
+    def encode_query(self, query: str) -> list[float]:
+        """
+        Generate the embedding of a user question.
+        """
+
+        embedding = self.model.encode(
+            self.query_prefix + query,
+            normalize_embeddings=True,
+        )
+
+        return embedding.tolist()
+
     def dimension(self) -> int:
         """
         Return the dimensionality of the embedding vectors.
         """
 
-        return self.model.get_sentence_embedding_dimension()
+        return self.model.get_embedding_dimension()

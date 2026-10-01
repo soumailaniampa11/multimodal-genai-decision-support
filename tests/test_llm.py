@@ -6,7 +6,9 @@ def main():
     config = load_config()
 
     generator = LLMGenerator(
-        model_name=config["generation"]["model_name"],
+        **config["generation"],
+        ollama=config["ollama"],
+        huggingface=config["huggingface"],
     )
 
     question = "Qu'est-ce que la gouvernance de l'IA ?"

@@ -36,9 +36,7 @@ def main():
     chunks = metadata_builder.build(document, chunks)
 
     # 6. Embeddings
-    embedding_model = EmbeddingModel(
-        model_name=config["embeddings"]["model_name"],
-    )
+    embedding_model = EmbeddingModel(**config["embeddings"])
     embedded_chunks = embedding_model.encode(chunks)
 
     # Results

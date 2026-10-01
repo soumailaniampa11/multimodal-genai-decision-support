@@ -37,6 +37,7 @@ class MetadataBuilder:
                 "document_id": chunk["document_id"],
                 "file_name": document["file_name"],
                 "file_type": document["file_type"],
+                "unit": document.get("unit", "page"),
                 "page": chunk["page"],
                 "chunk_index": index,
                 "text": chunk["text"],

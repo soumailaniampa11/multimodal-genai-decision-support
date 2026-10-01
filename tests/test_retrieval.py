@@ -12,14 +12,12 @@ def main():
     )
 
     # 1. Load embedding model
-    embedding_model = EmbeddingModel(
-        model_name=config["embeddings"]["model_name"],
-    )
+    embedding_model = EmbeddingModel(**config["embeddings"])
 
     # 2. Convert the query into a vector
-    query_vector = embedding_model.model.encode(
+    query_vector = embedding_model.encode_query(
         query
-    ).tolist()
+    )
 
     # 3. Search in Qdrant
     store = QdrantStore(**config["qdrant"])
