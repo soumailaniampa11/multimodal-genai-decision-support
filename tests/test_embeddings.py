@@ -4,10 +4,13 @@ from src.cleaning.encoding_corrector import PDFEncodingCorrector
 from src.chunking.pdf_chunker import PDFChunker
 from src.metadata.metadata_builder import MetadataBuilder
 from src.embeddings.embedding_model import EmbeddingModel
+from src.config import load_config
 
 
 def main():
-    file_path = "data/raw/GovInst-AI-Whitepaper.pdf"
+    config = load_config()
+
+    file_path = config["data"]["pdf_path"]
 
     # 1. Load
     loader = DocumentLoader(file_path)
@@ -23,8 +26,8 @@ def main():
 
     # 4. Chunk
     chunker = PDFChunker(
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=config["chunking"]["chunk_size"],
+        chunk_overlap=config["chunking"]["chunk_overlap"],
     )
     chunks = chunker.chunk(document)
 
@@ -33,7 +36,9 @@ def main():
     chunks = metadata_builder.build(document, chunks)
 
     # 6. Embeddings
-    embedding_model = EmbeddingModel()
+    embedding_model = EmbeddingModel(
+        model_name=config["embeddings"]["model_name"],
+    )
     embedded_chunks = embedding_model.encode(chunks)
 
     # Results

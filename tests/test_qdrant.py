@@ -5,10 +5,13 @@ from src.chunking.pdf_chunker import PDFChunker
 from src.metadata.metadata_builder import MetadataBuilder
 from src.embeddings.embedding_model import EmbeddingModel
 from src.retrieval.qdrant_store import QdrantStore
+from src.config import load_config
 
 
 def main():
-    file_path = "data/raw/GovInst-AI-Whitepaper.pdf"
+    config = load_config()
+
+    file_path = config["data"]["pdf_path"]
 
     # 1. Load PDF
     loader = DocumentLoader(file_path)
@@ -24,8 +27,8 @@ def main():
 
     # 4. Create chunks
     chunker = PDFChunker(
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=config["chunking"]["chunk_size"],
+        chunk_overlap=config["chunking"]["chunk_overlap"],
     )
     chunks = chunker.chunk(document)
 
@@ -39,7 +42,9 @@ def main():
     )
 
     # 6. Generate embeddings
-    embedding_model = EmbeddingModel()
+    embedding_model = EmbeddingModel(
+        model_name=config["embeddings"]["model_name"],
+    )
     embedded_chunks = embedding_model.encode(chunks)
 
     print(
@@ -48,7 +53,7 @@ def main():
     )
 
     # 7. Connect to Qdrant
-    store = QdrantStore()
+    store = QdrantStore(**config["qdrant"])
 
     # 8. Create collection if needed
     store.create_collection(

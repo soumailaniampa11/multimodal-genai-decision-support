@@ -1,7 +1,7 @@
 services:
 
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.19.1
 
     container_name: multimodal_qdrant
 

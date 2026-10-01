@@ -1,8 +1,11 @@
 from src.ingestion.document_loader import DocumentLoader
 from src.cleaning.pdf_cleaner import PDFTextCleaner
+from src.config import load_config
 
 
-pdf_path = "data/raw/GovInst-AI-Whitepaper.pdf"
+config = load_config()
+
+pdf_path = config["data"]["pdf_path"]
 
 loader = DocumentLoader(pdf_path)
 document = loader.load()

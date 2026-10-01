@@ -1,8 +1,13 @@
 from src.generation.llm_generator import LLMGenerator
+from src.config import load_config
 
 
 def main():
-    generator = LLMGenerator()
+    config = load_config()
+
+    generator = LLMGenerator(
+        model_name=config["generation"]["model_name"],
+    )
 
     question = "Qu'est-ce que la gouvernance de l'IA ?"
 

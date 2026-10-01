@@ -1,15 +1,20 @@
 from src.embeddings.embedding_model import EmbeddingModel
 from src.retrieval.qdrant_store import QdrantStore
+from src.config import load_config
 
 
 def main():
+    config = load_config()
+
     query = (
         "Quels sont les principaux obstacles à "
         "l'adoption de l'IA ?"
     )
 
     # 1. Load embedding model
-    embedding_model = EmbeddingModel()
+    embedding_model = EmbeddingModel(
+        model_name=config["embeddings"]["model_name"],
+    )
 
     # 2. Convert the query into a vector
     query_vector = embedding_model.model.encode(
@@ -17,11 +22,11 @@ def main():
     ).tolist()
 
     # 3. Search in Qdrant
-    store = QdrantStore()
+    store = QdrantStore(**config["qdrant"])
 
     results = store.search(
         query_vector=query_vector,
-        limit=5,
+        limit=config["retrieval"]["top_k"],
     )
 
     # 4. Display results

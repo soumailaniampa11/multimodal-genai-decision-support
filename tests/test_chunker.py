@@ -2,9 +2,12 @@ from src.ingestion.document_loader import DocumentLoader
 from src.cleaning.pdf_cleaner import PDFTextCleaner
 from src.cleaning.encoding_corrector import PDFEncodingCorrector
 from src.chunking.pdf_chunker import PDFChunker
+from src.config import load_config
 
 
-pdf_path = "data/raw/GovInst-AI-Whitepaper.pdf"
+config = load_config()
+
+pdf_path = config["data"]["pdf_path"]
 
 
 # 1. Load PDF
@@ -26,8 +29,8 @@ corrected_document = corrector.correct(
 
 # 4. Chunk document
 chunker = PDFChunker(
-    chunk_size=1000,
-    chunk_overlap=200,
+    chunk_size=config["chunking"]["chunk_size"],
+    chunk_overlap=config["chunking"]["chunk_overlap"],
 )
 
 chunks = chunker.chunk(
@@ -38,7 +41,7 @@ chunks = chunker.chunk(
 print("File:", corrected_document["file_name"])
 print(
     "Number of pages:",
-    corrected_document["number_of_pages"],
+    len(corrected_document["pages"]),
 )
 
 print(

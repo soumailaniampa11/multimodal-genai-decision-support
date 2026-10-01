@@ -3,13 +3,16 @@ import json
 from src.embeddings.embedding_model import EmbeddingModel
 from src.retrieval.qdrant_store import QdrantStore
 from src.evaluation.retrieval_evaluator import RetrievalEvaluator
+from src.config import load_config
 
 
 def main():
+    config = load_config()
+
 
     # Load evaluation question
     with open(
-        "data/evaluation/rag_questions.json",
+        config["data"]["evaluation_file"],
         "r",
         encoding="utf-8",
     ) as file:
@@ -21,18 +24,20 @@ def main():
     relevant_pages = item["relevant_pages"]
 
     # Generate query embedding
-    embedding_model = EmbeddingModel()
+    embedding_model = EmbeddingModel(
+        model_name=config["embeddings"]["model_name"],
+    )
 
     query_vector = embedding_model.model.encode(
         question
     ).tolist()
 
     # Retrieve documents
-    store = QdrantStore()
+    store = QdrantStore(**config["qdrant"])
 
     results = store.search(
         query_vector=query_vector,
-        limit=5,
+        limit=config["retrieval"]["top_k"],
     )
 
     # Evaluate
@@ -41,7 +46,7 @@ def main():
     precision = evaluator.precision_at_k(
         results=results,
         relevant_pages=relevant_pages,
-        k=5,
+        k=config["retrieval"]["top_k"],
     )
 
     print()

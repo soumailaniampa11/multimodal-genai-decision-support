@@ -5,10 +5,13 @@ from src.retrieval.qdrant_store import QdrantStore
 from src.generation.llm_generator import LLMGenerator
 from src.evaluation.retrieval_evaluator import RetrievalEvaluator
 from src.evaluation.llm_evaluator import LLMEvaluator
+from src.config import load_config
 
 
-EVALUATION_FILE = "data/evaluation/rag_questions.json"
-TOP_K = 5
+config = load_config()
+
+EVALUATION_FILE = config["data"]["evaluation_file"]
+TOP_K = config["retrieval"]["top_k"]
 
 
 def load_evaluation_questions():
@@ -43,11 +46,17 @@ def main():
     # INITIALIZE COMPONENTS ONCE
     # ============================================================
 
-    embedding_model = EmbeddingModel()
-    store = QdrantStore()
-    generator = LLMGenerator()
+    embedding_model = EmbeddingModel(
+        model_name=config["embeddings"]["model_name"],
+    )
+    store = QdrantStore(**config["qdrant"])
+    generator = LLMGenerator(
+        model_name=config["generation"]["model_name"],
+    )
     retrieval_evaluator = RetrievalEvaluator()
-    llm_evaluator = LLMEvaluator()
+    llm_evaluator = LLMEvaluator(
+        model_name=config["evaluation"]["model_name"],
+    )
 
     # ============================================================
     # GLOBAL RESULTS

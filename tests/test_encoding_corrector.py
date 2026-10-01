@@ -3,9 +3,12 @@ from collections import Counter
 from src.ingestion.document_loader import DocumentLoader
 from src.cleaning.pdf_cleaner import PDFTextCleaner
 from src.cleaning.encoding_corrector import PDFEncodingCorrector
+from src.config import load_config
 
 
-pdf_path = "data/raw/GovInst-AI-Whitepaper.pdf"
+config = load_config()
+
+pdf_path = config["data"]["pdf_path"]
 
 # 1. Load
 loader = DocumentLoader(pdf_path)

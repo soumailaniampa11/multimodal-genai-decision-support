@@ -1,15 +1,16 @@
 # Document processing
-pypdf
-PyMuPDF
+pypdf==6.19.0
+PyMuPDF==1.28.2
 
-# Environment configuration
-python-dotenv
+# Configuration
+python-dotenv==1.2.3
+PyYAML==6.0.3
 
 # Embeddings
-sentence-transformers
+sentence-transformers==6.0.1
 
 # Vector database
-qdrant-client
+qdrant-client==1.19.1
 
-# LLM
-openai
+# LLM (Google Gemini)
+google-genai==2.24.0

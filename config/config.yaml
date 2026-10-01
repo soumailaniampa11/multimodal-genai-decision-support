@@ -1,0 +1,27 @@
+# Central configuration for the RAG pipeline.
+# Change experimental parameters here instead of in the code.
+
+data:
+  pdf_path: data/raw/GovInst-AI-Whitepaper.pdf
+  evaluation_file: data/evaluation/rag_questions.json
+
+chunking:
+  chunk_size: 1000
+  chunk_overlap: 200
+
+embeddings:
+  model_name: all-MiniLM-L6-v2
+
+qdrant:
+  host: localhost
+  port: 6333
+  collection_name: ai_governance_documents
+
+retrieval:
+  top_k: 5
+
+generation:
+  model_name: gemini-3.8-flash
+
+evaluation:
+  model_name: gemini-3.8-flash
