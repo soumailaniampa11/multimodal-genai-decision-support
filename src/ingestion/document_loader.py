@@ -56,13 +56,11 @@ class DocumentLoader:
         raise ValueError(f"Unsupported file type: {extension}")
 
     def _load_pdf(self) -> dict[str, Any]:
-        """Extract text and metadata from a PDF page by page."""
+        """Extract text from a PDF page by page."""
 
         from pypdf import PdfReader
 
         reader = PdfReader(self.file_path)
-
-        metadata = reader.metadata or {}
 
         pages = []
 
@@ -79,10 +77,6 @@ class DocumentLoader:
         return {
             "file_name": self.file_path.name,
             "file_type": "pdf",
-            "title": metadata.get("/Title"),
-            "author": metadata.get("/Author"),
-            "subject": metadata.get("/Subject"),
-            "number_of_pages": len(reader.pages),
             "pages": pages,
         }
 
