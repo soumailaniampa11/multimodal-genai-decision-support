@@ -1,333 +1,144 @@
 # Multimodal GenAI Decision Support
 
-## Evidence-Grounded Decision Support for Digital Transformation and AI Governance
-
-<p align="center">
-<strong>document ingestion · OCR · chunking · multilingual retrieval · local LLM · RAG · provenance · evaluation</strong>
-</p>
-
----
+**Evidence-grounded decision support for digital transformation and AI governance using Retrieval-Augmented Generation**
 
 ## Abstract
 
-This repository contains a research prototype for **evidence-grounded decision support with Retrieval-Augmented Generation (RAG)** in the context of digital transformation and AI governance.
+This repository contains a research prototype of a Retrieval-Augmented Generation (RAG) system for decision support in digital transformation and AI governance. Organizational documents are converted into retrievable passages; for a given question, the most relevant passages are retrieved and a language model is instructed to answer from this evidence only, citing the source document and page. Ingestion, retrieval, generation and evaluation are kept separate so that each stage can be measured independently.
 
-The prototype turns organizational documents into retrievable passages, retrieves the passages relevant to a question, and asks a language model to answer **only from those passages**, citing the document and page. Each stage — ingestion, retrieval, generation and evaluation — is kept separate so that its quality and failure modes can be studied on their own.
+The system is not yet multimodal in the machine-learning sense: all formats are reduced to text, tables are serialized and images are processed by OCR. Visual and layout understanding are part of the research agenda.
 
-The research emphasis is not on building a generic chatbot but on measuring retrieval quality, grounding and traceability.
+## Research question
 
-> **Implementation boundary.** Despite the repository name, the system is **not multimodal in the machine-learning sense**. Every format is reduced to text: tables become lines of text and images are read with OCR. Understanding of figures, layout and visual content is future work.
+How can Retrieval-Augmented Generation transform organizational document knowledge into traceable, evidence-grounded decision support for digital transformation and AI governance?
 
----
+The prototype addresses three requirements: **retrievability** of relevant passages, **grounding** of generated claims in retrieved evidence, and **traceability** of evidence to its document and page.
 
-## 1. Project Status
+## Project status
 
-This section states plainly what exists today and what does not.
+### Completed and validated on real documents
 
-### ✅ Done and tested on real documents
+- [x] PDF ingestion with page-level provenance (corpus of 5 documents, 284 pages, English and French)
+- [x] Text cleaning, encoding correction and sentence-aware chunking
+- [x] Indexing of a document collection in Qdrant
+- [x] Multilingual dense retrieval (`intfloat/multilingual-e5-small`), optionally restricted to one document
+- [x] Grounded generation with a local open-weight model (`llama3.2:3b`, Ollama)
+- [x] Retrieval evaluation (Precision@K on document and page) and LLM-assisted answer evaluation
+- [x] Complete 10-question baseline run and embedding-model comparison
 
-- [x] PDF ingestion, page by page, on a corpus of 5 real PDFs (284 pages, English and French)
-- [x] Text cleaning (repeated headers/footers, whitespace) and encoding correction
-- [x] Sentence-aware chunking (1000 characters, 200 overlap), keeping the source page
-- [x] Provenance metadata for every chunk (document, page, chunk)
-- [x] Indexing of a whole folder into Qdrant, with unique identifiers across documents
-- [x] Multilingual embeddings (`intfloat/multilingual-e5-small`) — a French question can retrieve an English passage
-- [x] Dense retrieval (cosine similarity, Top-5), optionally restricted to one document
-- [x] Answer generation with a **local** open-weight model (`llama3.2:3b` through Ollama), free and without quota
-- [x] Retrieval evaluation: Precision@5 matching both document **and** page, in two scopes
-- [x] LLM-assisted answer evaluation (faithfulness, context relevance, answer relevance, reference alignment)
-- [x] One complete 10-question RAG evaluation run (single-document baseline, Section 8.1)
-- [x] Retrieval-only benchmark comparing two embedding models (Sections 8.2 and 8.3)
-- [x] Central configuration (`config/config.yaml`), pinned dependencies, pinned Qdrant version
+### Implemented, partially validated
 
-### 🟡 Implemented, only partially tested
-
-| Feature | What has been verified | What has not |
+| Component | Validated on | Not yet validated on |
 |---|---|---|
-| DOCX, PPTX, XLSX, CSV, HTML, Markdown, TXT ingestion | small synthetic files of each format | real-world documents of these formats |
-| OCR for images and scanned PDF pages (English + French) | one synthetic image; one real PDF page without text layer (a cover with logos) | a genuinely scanned document; OCR quality on real scans |
-| Hugging Face Inference Providers as LLM | request format, against a local mock server | the real API |
-| Google Gemini as LLM | used for one question before the code was refactored | the refactored client against the real API |
-| Full RAG evaluation with multilingual embeddings on the 5-document corpus | retrieval part only | generation and LLM-judge part |
+| DOCX, PPTX, XLSX, CSV, HTML, Markdown and TXT ingestion | synthetic files | real documents |
+| OCR (images, scanned PDF pages) | one image, one PDF page without text layer | scanned documents |
+| Hugging Face and Gemini as LLM providers | mock server; Gemini before refactoring | current code against the real APIs |
+| Full RAG evaluation on the 5-document corpus | retrieval stage | generation and judge stages |
 
-### ⬜ Not done yet
+### Planned
 
-**Evaluation**
-- [ ] Multi-document evaluation set (several accepted documents per question)
-- [ ] More than 10 questions
-- [ ] Recall@K, Hit Rate@K, MRR
-- [ ] A judge model different from the generation model
-- [ ] Human evaluation of a subset of answers
-- [ ] Saving each run's configuration and results to a file
+- [ ] Multi-document evaluation set and a larger benchmark
+- [ ] Recall@K and MRR; a judge model distinct from the generator; human evaluation
+- [ ] Hybrid lexical and dense retrieval, reranking
+- [ ] Abstention when evidence is insufficient, verifiable citations
+- [ ] Table, figure and layout understanding; visual embeddings
+- [ ] Automated tests, user interface and deployment
 
-**Retrieval**
-- [ ] Hybrid retrieval (keyword BM25 + dense)
-- [ ] Reranking
-- [ ] Mitigation of the language bias observed in Section 8.3
+## Architecture
 
-**Generation**
-- [ ] Structured, verifiable citations
-- [ ] Abstention when the evidence is insufficient
-- [ ] Larger local models (7–8B) once bandwidth allows
-
-**Multimodal**
-- [ ] Native table extraction and reasoning
-- [ ] Understanding of figures and diagrams
-- [ ] Layout modeling
-- [ ] Visual embeddings and cross-modal retrieval
-- [ ] Legacy formats (`.doc`, `.ppt`, `.xls`) and OpenDocument
-
-**Engineering**
-- [ ] Automated tests (the scripts in `tests/` are run manually and contain no assertions)
-- [ ] Continuous integration
-- [ ] User interface (Streamlit or Gradio) and API
-- [ ] Online deployment
-
----
-
-## 2. Research Problem
-
-Organizations increasingly rely on strategic, regulatory, technical, and managerial documents when making decisions about digital transformation and AI. Generative models produce fluent answers, but fluency alone does not show that an answer is supported by organizational evidence.
-
-The prototype focuses on three requirements:
-
-- **retrievability** — relevant passages should be found in a document collection;
-- **grounding** — generated claims should be constrained by retrieved evidence;
-- **traceability** — evidence should keep its document and page of origin.
-
-### Research question
-
-> **How can Retrieval-Augmented Generation transform organizational document knowledge into traceable, evidence-grounded decision support for digital transformation and AI governance?**
-
-The current implementation is an experimental baseline for investigating this question, not a conclusive answer to it.
-
----
-
-## 3. System Architecture
-
-The system has three independent stages. Each is shown as a straight pipeline.
-
-### 3.1 Indexing (offline, run once per corpus)
+The system comprises an offline indexing stage, an online inference stage and an evaluation stage. Passages and questions are encoded by the same multilingual bi-encoder, so that a French question can be matched with an English passage.
 
 ```mermaid
 flowchart LR
-    A["Documents<br/>data/raw"] --> B["Load<br/>text or OCR"] --> C["Clean"] --> D["Chunk<br/>1000 chars"] --> E["Embed<br/>e5-small"] --> F[("Qdrant")]
+    subgraph OFF["Offline indexing"]
+        DOC[("Document corpus")] --> ING["Ingestion<br/>parsing, OCR, cleaning"]
+        ING --> CHK["Chunking<br/>and provenance metadata"]
+        CHK --> PE["Passage encoder<br/>multilingual-e5-small"]
+    end
+
+    PE --> IDX[("Vector index<br/>Qdrant")]
+
+    subgraph ON["Online inference"]
+        Q["Question"] --> QE["Query encoder<br/>multilingual-e5-small"]
+        QE --> RET["Top-K retrieval<br/>cosine similarity"]
+        RET --> CTX["Evidence context<br/>passages and sources"]
+        CTX --> GEN["Grounded generation<br/>LLM"]
+        GEN --> ANS["Answer<br/>with citations"]
+    end
+
+    IDX --> RET
+
+    subgraph EVAL["Evaluation"]
+        BEN[("Annotated benchmark")] --> PK["Precision@K"]
+        BEN --> JDG["LLM judge"]
+    end
+
+    RET --> PK
+    ANS --> JDG
 ```
 
-### 3.2 Question answering (online, per question)
+Each format is mapped to a citable unit that is propagated to chunks, retrieval results and citations:
 
-```mermaid
-flowchart LR
-    A["Question"] --> B["Embed<br/>e5-small"] --> C["Search Qdrant<br/>Top-5"] --> D["Context<br/>passages + sources"] --> E["LLM<br/>llama3.2:3b"] --> F["Answer<br/>with citations"]
-```
+| Format | Unit |
+|---|---|
+| PDF, HTML, TXT, images | page |
+| PPTX | slide |
+| XLSX, CSV | sheet |
+| DOCX, Markdown | section |
 
-The question is also given to the LLM together with the context.
+## Methodology
 
-### 3.3 Evaluation (offline, on the evaluation set)
+**Ingestion.** PDF text is extracted page by page; pages without a text layer are processed with Tesseract OCR. Table rows are serialized as `header: value` pairs. Repeated headers and footers are removed from paginated formats, and corpus-specific encoding errors are corrected.
+
+**Chunking.** Text is split into chunks of about 1000 characters with a 200-character overlap, at paragraph and sentence boundaries. Each chunk keeps its document and unit.
+
+**Retrieval.** Chunks and questions are encoded with `intfloat/multilingual-e5-small` (384 dimensions, 512-token inputs, `passage:` and `query:` prefixes). Qdrant returns the five most similar chunks by cosine similarity.
+
+**Generation.** Retrieved chunks are inserted into the prompt with their sources. The model is instructed to answer from this context only, to state when it is insufficient, and to cite the document and unit of each claim. This constraint is enforced at prompt level and does not guarantee faithfulness. Generation uses temperature 0 and a fixed seed.
+
+## Evaluation protocol
 
 ```mermaid
 flowchart TB
-    subgraph R["Retrieval evaluation — no LLM"]
-        direction LR
-        R1["Question"] --> R2["Search<br/>Top-5"] --> R3["Retrieved<br/>passages"] --> R4["Precision@5<br/>vs reference document + pages"]
-    end
-    subgraph G["Answer evaluation — with LLM"]
-        direction LR
-        G1["Question +<br/>passages"] --> G2["LLM<br/>generates answer"] --> G3["LLM judge<br/>vs reference answer"] --> G4["4 scores<br/>0 to 1"]
-    end
+    ITEM[("Benchmark item")]
+    ITEM --> REF["Reference document<br/>and pages"]
+    ITEM --> Q["Question"]
+    ITEM --> RA["Reference answer"]
+
+    Q --> RAG["RAG pipeline"]
+    RAG --> RC["Retrieved chunks"]
+    RAG --> GA["Generated answer"]
+
+    REF --> P["Precision@K"]
+    RC --> P
+
+    RC --> J["LLM judge"]
+    GA --> J
+    RA --> J
+
+    J --> F["Faithfulness"]
+    J --> CR["Context relevance"]
+    J --> AR["Answer relevance"]
+    J --> AL["Reference alignment"]
 ```
 
-Evaluation never influences the answer returned to the user.
-
-### Architectural principle
-
-The same embedding model encodes passages and questions, so both live in the same 384-dimensional space. Because the model is multilingual, a French question can be matched with an English passage. Retrieved passages and their sources are the only evidence given to the language model.
-
----
-
-## 4. Repository Structure
-
-```text
-multimodal-genai-decision-support/
-├── config/
-│   └── config.yaml             # all experimental parameters
-├── data/
-│   ├── raw/                    # source documents; excluded from Git
-│   ├── processed/              # derived artifacts; excluded from Git
-│   └── evaluation/
-│       └── rag_questions.json  # 10 annotated questions
-├── src/
-│   ├── config.py               # configuration loader
-│   ├── ingestion/
-│   │   └── document_loader.py  # all formats + OCR
-│   ├── cleaning/
-│   │   ├── pdf_cleaner.py
-│   │   └── encoding_corrector.py
-│   ├── chunking/
-│   │   └── pdf_chunker.py
-│   ├── metadata/
-│   │   └── metadata_builder.py
-│   ├── embeddings/
-│   │   └── embedding_model.py
-│   ├── retrieval/
-│   │   └── qdrant_store.py
-│   ├── llm/
-│   │   └── llm_client.py       # Ollama, Hugging Face and Gemini clients
-│   ├── generation/
-│   │   └── llm_generator.py
-│   └── evaluation/
-│       ├── retrieval_evaluator.py
-│       └── llm_evaluator.py
-├── tests/                      # manual scripts, run with python -m
-│   ├── test_qdrant.py              # index every document in data/raw
-│   ├── test_retrieval_benchmark.py # retrieval-only evaluation
-│   ├── test_rag.py                 # full RAG evaluation
-│   └── ...                         # one script per component
-├── requirements.txt
-├── docker-compose.yml          # Qdrant
-└── README.md
-```
-
----
-
-## 5. Technology Stack
-
-| Component | Technology |
-|---|---|
-| Language | Python 3.11 |
-| PDF | `pypdf`; `PyMuPDF` to render pages for OCR |
-| Office and web formats | `python-docx`, `python-pptx`, `openpyxl`, `pandas`, `lxml` |
-| OCR | Tesseract (`pytesseract`), English + French |
-| Embeddings | `sentence-transformers`, `intfloat/multilingual-e5-small` (384 dimensions) |
-| Vector database | Qdrant `v1.19.1` (Docker), cosine similarity |
-| Language model | `llama3.2:3b` through Ollama (local) |
-| Optional LLM providers | Hugging Face Inference Providers, Google Gemini |
-| Configuration | `config/config.yaml`; `.env` for optional API keys |
-
-All Python dependencies are pinned in `requirements.txt`.
-
----
-
-## 6. Methodology
-
-### 6.1 Ingestion and citable units
-
-`DocumentLoader` converts every supported format into the same structure: a list of **units** with their text. The unit is what answers cite.
-
-| Format | Extraction | Unit |
-|---|---|---|
-| PDF | text layer; OCR when a page has none | page |
-| DOCX | paragraphs and tables, in order | section (new one at each heading) |
-| PPTX | text, tables, speaker notes | slide |
-| XLSX / CSV | rows of each sheet | sheet |
-| HTML | visible text | page |
-| Markdown | split at headings | section |
-| TXT | full text | page |
-| Images | OCR | page |
-
-Table rows are written as `header: value | header: value` so that each value keeps its meaning. This is a textual approximation, not table reasoning.
-
-### 6.2 Cleaning
-
-`PDFTextCleaner` removes lines repeated at the top or bottom of several pages (running headers and footers) and normalizes whitespace. This detection is applied only to paginated formats (PDF, PPTX), and a line must appear on at least two pages to be removed. `encoding_corrector.py` fixes character-encoding errors observed in the corpus; it is corpus-specific, not a general repair method.
-
-### 6.3 Chunking
-
-Text is split unit by unit into chunks of about 1000 characters with 200 characters of overlap, cutting at paragraph and sentence boundaries. Each chunk keeps its source unit. This is **sentence-aware**, not semantic, chunking.
-
-### 6.4 Provenance metadata
-
-```json
-{
-  "chunk_id": "chunk_0107",
-  "document_id": "GovInst-AI-Whitepaper.pdf",
-  "file_type": "pdf",
-  "unit": "page",
-  "page": 36,
-  "chunk_index": 107,
-  "text": "..."
-}
-```
-
-`page` holds the unit number and `unit` says whether it is a page, slide, sheet or section. Qdrant identifiers are derived from the document and chunk identifiers, so several documents never overwrite each other.
-
-### 6.5 Embeddings and retrieval
-
-Chunks and questions are encoded with `intfloat/multilingual-e5-small` (about 100 languages, inputs up to 512 tokens). As the model requires, passages are prefixed with `passage: ` and questions with `query: `. The English-only `all-MiniLM-L6-v2`, limited to 256 tokens, is kept as the documented baseline.
-
-Qdrant returns the 5 most similar chunks by cosine similarity. A search can be restricted to one document, which the evaluation uses to compare with the single-document baseline.
-
-### 6.6 Generation
-
-The retrieved chunks are written into the prompt with their document and unit. The model is instructed to answer only from this context, to say when the context is insufficient, and to cite the document and unit of each claim. This is a **prompt-level** constraint: it reduces but does not guarantee unsupported claims.
-
-The LLM provider is chosen in `config/config.yaml`:
-
-| Provider | Where the model runs | Requirement | Tested |
-|---|---|---|---|
-| `ollama` (default) | locally | Ollama + model pulled | ✅ real runs |
-| `huggingface` | Hugging Face servers | `HF_TOKEN` in `.env` | 🟡 mock server only |
-| `gemini` | Google servers | `GEMINI_API_KEY` in `.env` | 🟡 before refactoring only |
-
-Local generation uses temperature 0, a fixed seed and an 8192-token context, so runs are reproducible.
-
----
-
-## 7. Evaluation Framework
-
-### 7.1 Evaluation set
-
-`data/evaluation/rag_questions.json` contains **10 questions in French**, annotated on the English document `GovInst-AI-Whitepaper.pdf`:
-
-```json
-{
-  "id": "q001",
-  "question": "...",
-  "relevant_document": "GovInst-AI-Whitepaper.pdf",
-  "relevant_pages": [16, 35, 36],
-  "reference_answer": "..."
-}
-```
-
-The pages are a manual annotation, not an exhaustive ground truth: relevant passages may exist on other pages or in other documents.
-
-### 7.2 Retrieval metric
+The benchmark contains 10 questions in French, annotated with reference pages in the English document `GovInst-AI-Whitepaper.pdf`, and a reference answer. A retrieved chunk is counted as relevant when both its document and its page match the annotation:
 
 $$
-\mathrm{Precision@K} = \frac{\text{retrieved chunks from the reference document and pages}}{K}
+\mathrm{Precision@K} = \frac{\left|\{\text{retrieved chunks from the reference document and pages}\}\right|}{K}
 $$
 
-Both the document and the page must match; matching pages alone would wrongly accept page 16 of any document.
+Retrieval is evaluated in two scopes: **reference document**, where the search is restricted to the annotated document and results are comparable with the single-document baseline, and **corpus**, where all indexed documents are searched. Judge scores lie in [0, 1] and are treated as indicators; they have not been validated against human judgments.
 
-| Scope | Search space | Purpose |
-|---|---|---|
-| `reference_document` | the annotated document only | comparable with the single-document baseline |
-| `corpus` | all indexed documents | real use case |
+## Results
 
-### 7.3 Answer evaluation
+All experiments use the 10-question benchmark, K = 5, and the chunking parameters above.
 
-An LLM judge scores each answer from 0 to 1 on four dimensions:
+### Single-document baseline
 
-| Dimension | Question asked to the judge |
-|---|---|
-| Faithfulness | Are the answer's claims supported by the retrieved passages? |
-| Context relevance | Are the retrieved passages useful for the question? |
-| Answer relevance | Does the answer address the question? |
-| Reference alignment | Does the answer cover the reference answer? |
+Corpus restricted to `GovInst-AI-Whitepaper.pdf` (39 pages, 114 chunks), embeddings `all-MiniLM-L6-v2`, generation and judge `llama3.2:3b`.
 
-These scores are **indicators**, not validated measurements. They have not been compared with human judgments.
-
----
-
-## 8. Experimental Results
-
-All runs: 10 questions, Top-5, chunks of 1000 characters with 200 overlap, deterministic decoding.
-
-### 8.1 Single-document baseline (full RAG run)
-
-Corpus: `GovInst-AI-Whitepaper.pdf` only (39 pages, 114 chunks) · embeddings: `all-MiniLM-L6-v2` · generation and judge: `llama3.2:3b`.
-
-| Indicator | Mean |
+| Metric | Mean |
 |---|---:|
 | Precision@5 | 0.200 |
 | Faithfulness | 0.760 |
@@ -335,176 +146,78 @@ Corpus: `GovInst-AI-Whitepaper.pdf` only (39 pages, 114 chunks) · embeddings: `
 | Answer relevance | 0.610 |
 | Reference alignment | 0.560 |
 
-**Observations**
+Retrieval is the weakest stage. The judge shows low discrimination (faithfulness of 0.8 on nine questions out of ten), which is consistent with a small model evaluating its own outputs.
 
-1. Retrieval is the weakest stage: on average one retrieved chunk in five comes from an annotated page, and two questions retrieve none.
-2. The judge barely discriminates: faithfulness is 0.8 for nine questions out of ten, context relevance is 0.9 or 1.0 everywhere — consistent with a small model judging its own answers.
-3. The questions are in French, the document in English, and the embedding model is English-only.
+### Effect of multilingual embeddings
 
-An earlier attempt with Gemini stopped after one question because of free-tier quota limits; the local model removed this constraint.
+Reference-document scope.
 
-### 8.2 Multilingual embeddings (retrieval only)
-
-Same document, scope `reference_document`.
-
-| Embedding model | Precision@5 | Questions with at least one correct chunk |
+| Embedding model | Precision@5 | Questions with at least one relevant chunk |
 |---|---:|---:|
-| `all-MiniLM-L6-v2` (English-only) | 0.200 | 8 / 10 |
-| `intfloat/multilingual-e5-small` | **0.280** | 9 / 10 |
+| `all-MiniLM-L6-v2` (English) | 0.200 | 8 / 10 |
+| `intfloat/multilingual-e5-small` | 0.280 | 9 / 10 |
 
-The multilingual model improves Precision@5 by 0.08 (40 % relative).
+Since the questions are in French and the document in English, a multilingual encoder improves Precision@5 by 40 % relative.
 
-### 8.3 Five-document corpus (retrieval only)
+### Effect of corpus expansion
 
-Four French documents on the same topics were added:
+Four French reports on the same topics were added (Commission de l'IA 2024, OECD 2025, CSNP 2026, CIGREF 2025), giving 5 documents, 284 pages and 1109 chunks. In the corpus scope, Precision@5 is 0.000 with both encoders, and none of the 50 retrieved chunks comes from the annotated document.
 
-| Document | Language | Pages | Chunks |
-|---|---|---:|---:|
-| GovInst — AI Governance White Paper | EN | 39 | 114 |
-| Commission de l'IA — *IA : notre ambition pour la France* (2024) | FR | 130 | 519 |
-| OCDE — *L'adoption de l'IA par les PME* (2025) | FR | 68 | 297 |
-| CSNP — *Avis sur l'adoption de l'IA par les entreprises* (2026) | FR | 30 | 129 |
-| CIGREF — *Guide de mise en œuvre de l'AI Act : Gouvernance* (2025) | FR | 17 | 50 |
-| **Total** | | **284** | **1109** |
+The retrieved chunks are nevertheless topically relevant to the questions. The result therefore exposes a limitation of the benchmark, which recognizes a single relevant document per question, rather than a retrieval failure. A residual language bias is also observed: French passages obtain higher similarity scores (about 0.88) than the relevant English passages (about 0.85).
 
-| Embedding model | Precision@5 (scope `corpus`) | Chunks from the annotated document |
-|---|---:|---:|
-| `all-MiniLM-L6-v2` | 0.000 | 0 / 50 |
-| `intfloat/multilingual-e5-small` | 0.000 | 0 / 50 |
+## Limitations
 
-**Interpretation.** With both models, none of the 50 retrieved chunks comes from the annotated English document. The chunks retrieved instead (for example the Commission report on levers for mastering AI, or the OECD recommendations for SMEs) are topically relevant to the generic questions of the dataset.
+1. All content is reduced to text; visual and layout information is not exploited.
+2. Relevance annotations cover a single document and may omit relevant pages.
+3. Ten questions do not support statistically robust conclusions.
+4. The LLM judge is not validated and, in the reported runs, evaluates its own outputs.
+5. A 3-billion-parameter model limits answer quality.
+6. Retrieval is dense only, without lexical search or reranking.
 
-The zero score therefore mainly shows a **limit of the evaluation set**: it accepts a single document, while the corpus now contains several that legitimately answer the same questions. A **language bias** also remains: the best French chunks score about 0.88 and the best annotated English chunks about 0.85, so French passages always come first.
+## Installation
 
----
-
-## 9. Reproducibility
-
-| Component | Setting |
-|---|---|
-| Chunking | sentence-aware, 1000 characters, 200 overlap |
-| Embedding model | `intfloat/multilingual-e5-small` (baseline: `all-MiniLM-L6-v2`) |
-| Vector store | Qdrant `v1.19.1`, cosine |
-| Retrieval depth | Top-5 |
-| Generation and judge | `llama3.2:3b` (Ollama), temperature 0, seed 42 |
-| Retrieval metric | Precision@5, document + page |
-| Evaluation set | 10 questions |
-
-All parameters live in `config/config.yaml` and dependencies are pinned. Results are not yet saved automatically per run (see Section 1).
-
----
-
-## 10. Installation and Execution
-
-### Prerequisites
-
-Python 3.11, Docker, Git, [Ollama](https://ollama.com), and Tesseract (only for images and scanned PDFs).
-
-### Setup
+Requirements: Python 3.11, Docker, [Ollama](https://ollama.com), and Tesseract for OCR.
 
 ```bash
 git clone https://github.com/soumailaniampa11/multimodal-genai-decision-support.git
 cd multimodal-genai-decision-support
-
-python3.11 -m venv .venv
-source .venv/bin/activate
+python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-### Local language model
-
-```bash
-brew install ollama
-brew services start ollama
 ollama pull llama3.2:3b
+docker compose up -d
 ```
 
-### OCR (optional)
+For OCR, install Tesseract (`brew install tesseract`) and the French language data (`fra.traineddata`). To use Hugging Face or Gemini instead of the local model, set the provider in `config/config.yaml` and define `HF_TOKEN` or `GEMINI_API_KEY` in a `.env` file.
+
+## Usage
 
 ```bash
-brew install tesseract
-curl -L -o "$(brew --prefix)/share/tessdata/fra.traineddata" https://github.com/tesseract-ocr/tessdata_fast/raw/main/fra.traineddata
+python -m tests.test_qdrant                 # index all documents in data/raw
+python -m tests.test_retrieval_benchmark    # retrieval evaluation, both scopes
+python -m tests.test_rag                    # full RAG evaluation
 ```
 
-Tesseract ships with English only; the second command adds French (about 1 MB).
+All parameters (chunking, embedding model, K, evaluation scope, LLM provider and models) are defined in `config/config.yaml`. The index must be rebuilt after changing the documents, the embedding model or the chunking parameters.
 
-### Optional API providers
+## Repository structure
 
-Set the provider in `config/config.yaml` and add the key to a `.env` file (never committed):
-
-```env
-HF_TOKEN=your_hugging_face_token
-GEMINI_API_KEY=your_gemini_api_key
+```text
+config/config.yaml              experimental parameters
+data/evaluation/                benchmark (10 annotated questions)
+data/raw/                       source documents, not versioned
+src/ingestion/                  multi-format loading and OCR
+src/cleaning/                   text cleaning and encoding correction
+src/chunking/                   sentence-aware chunking
+src/metadata/                   provenance metadata
+src/embeddings/                 multilingual encoder
+src/retrieval/                  Qdrant storage and search
+src/llm/                        Ollama, Hugging Face and Gemini clients
+src/generation/                 grounded answer generation
+src/evaluation/                 retrieval metrics and LLM judge
+tests/                          experiment scripts (run manually)
 ```
 
-### Run
+## License
 
-```bash
-docker compose up -d                          # start Qdrant
-python -m tests.test_qdrant                   # index every document in data/raw
-python -m tests.test_retrieval_benchmark      # retrieval only, a few seconds
-python -m tests.test_rag                      # full RAG evaluation, several minutes
-```
-
-Re-run the indexing whenever documents, the embedding model or the chunking parameters change.
-
----
-
-## 11. Configuration
-
-| Section of `config/config.yaml` | Content |
-|---|---|
-| `data` | document folder, evaluation file |
-| `ingestion` | OCR languages |
-| `chunking` | chunk size and overlap |
-| `embeddings` | model, query and passage prefixes |
-| `qdrant` | host, port, collection |
-| `retrieval` | Top-K, evaluation scope |
-| `generation`, `evaluation` | LLM provider and model for each role |
-| `ollama`, `huggingface` | provider settings |
-
----
-
-## 12. Next Steps
-
-In order of priority (details in Section 1):
-
-1. **Multi-document evaluation set** — without it, results on the full corpus cannot be measured.
-2. **Full RAG run** with multilingual embeddings on the 5-document corpus.
-3. **Separate judge model** and **Recall@K / MRR**.
-4. **Hybrid retrieval and reranking**, measured against the current baseline.
-5. **Interface and deployment** for demonstration.
-6. **Multimodal extensions** (tables, figures, layout), compared against the textual baseline.
-
----
-
-## 13. Limitations
-
-1. **Text only** — visual and layout information is not used.
-2. **Single-document annotations** — the evaluation set underestimates retrieval quality on the multi-document corpus.
-3. **Small evaluation set** — 10 questions do not support statistically robust conclusions.
-4. **Unvalidated LLM judge** — no comparison with human judgments; the same small model generates and judges.
-5. **Small local model** — 3 billion parameters limit answer quality.
-6. **Dense retrieval only** — no keyword search, no reranking.
-7. **Corpus-specific encoding correction** — may not generalize.
-8. **No decision-outcome evaluation** — answers are evaluated, not the decisions made from them.
-
----
-
-## 14. Scientific Positioning
-
-The project lies at the intersection of Retrieval-Augmented Generation, information retrieval, document processing, decision support systems, digital transformation and AI governance. Its scientific interest is the **traceable transformation of organizational documents into retrieved evidence and evidence-constrained answers**, with explicit evaluation of each stage.
-
-It should be understood as an **experimental RAG system for decision-support research**, not as evidence that RAG alone produces trustworthy organizational decisions. Trustworthiness also requires stronger evaluation, human oversight and governance mechanisms.
-
----
-
-## 15. Conclusion
-
-The repository provides a modular, local and reproducible RAG baseline over organizational documents. The first experiments show a measurable gain from multilingual embeddings (Precision@5 from 0.20 to 0.28 on the reference document) and reveal that single-document relevance annotations no longer hold once the corpus contains several documents on the same topic. The next step is a multi-document evaluation protocol, before adding more advanced retrieval or multimodal understanding.
-
----
-
-## 16. License
-
-This repository is intended for research and educational use. A specific open-source license should be chosen before broader redistribution.
+Intended for research and educational use. A specific open-source license has not yet been selected.
